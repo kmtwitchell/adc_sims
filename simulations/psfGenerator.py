@@ -83,7 +83,7 @@ class PsfGenerator:
             
             bb_psf += power
 
-        return bb_psf
+        return bb_psf/max(bb_psf)
     
 
     def noisy_psf(self, center_x=0, center_y=0, magnitude_x=0, magnitude_y=0, num_photons=1E8):

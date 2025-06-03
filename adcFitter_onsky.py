@@ -106,8 +106,8 @@ class AdcFitter:
 
     def find_speckle_angles2(self): 
         speckle_angles = np.zeros(4)
-        sig_x = [0.8,3.5,0.8,3.5]
-        sig_y = [3.5,0.8,3.5,0.8]
+        sig_x = [1,3.5,1,3.5]
+        sig_y = [3.5,1,3.5,1]
 
         for i in range(4):
             img = self.find_speckle(self.psf,i)
