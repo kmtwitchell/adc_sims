@@ -24,6 +24,7 @@ grating_freq = 47
 
 ADC = AdcFitter(wavelength=wavelength,grating_freq=grating_freq)
 
+#reference cube for the extent. make sure this is in the same wavelength as your data
 difference_cube = read_field('/Users/Katie/Documents/Fall 2023/MagAO-X/ADC Sim code/updated onsky/all_lab_fields_i.fits')
 igrid = difference_cube.grid
 print(igrid.dims)
@@ -39,9 +40,9 @@ for img in images:
     im = Field(im,grid)
     fields.append(im)
 
-plt.figure()
-imshow_field(fields[0])
-plt.show()
+# plt.figure()
+# imshow_field(fields[0])
+# plt.show()
 
 fieldcube = Field(fields,fields[-1].grid)
 write_field(fieldcube,'/Users/Katie/Documents/MagAO-X/simulations/adc_sims/lab_6225_0offset.fits')
