@@ -43,12 +43,13 @@ class AdcFitter:
         #print(f'current speckle: {self.current_speckle}')
 
         ##boundary condition for the aspect ratio
-        if self.current_speckle == 0 or self.current_speckle == 2:
-            if aspect_ratio  >= 1:
-                j+= 1E3 * aspect_ratio **2
-        elif self.current_speckle ==1 or self.current_speckle == 3:
-            if aspect_ratio <= 1:
-                j+= 1E3 * 1/aspect_ratio**2
+        # if self.current_speckle == 0 or self.current_speckle == 2:
+        #     if aspect_ratio  >= 1:
+        #         j+= 1E3 * aspect_ratio **2
+
+        # elif self.current_speckle ==1 or self.current_speckle == 3:
+        #     if aspect_ratio <= 1:
+        #         j+= 1E3 * 1/aspect_ratio**2
 
         return j
     
@@ -119,10 +120,10 @@ class AdcFitter:
             #orientation = np.radians(28)
 
             orientation = self.estimate_angle()
-            if self.current_speckle == 0 or self.current_speckle ==2:
-                orientation = np.pi/2 - orientation
-            elif self.current_speckle == 1 or self.current_speckle == 3:
-                orientation = -orientation
+            # if self.current_speckle == 0 or self.current_speckle ==2:
+            #     orientation = np.pi/2 - orientation
+            # elif self.current_speckle == 1 or self.current_speckle == 3:
+            #     orientation = -orientation
 
             #params common to all four
             amplitude = self.data.max()
@@ -157,6 +158,7 @@ class AdcFitter:
             #orientation = np.radians(28)
 
             orientation = self.estimate_angle()
+            #print(f'starting orientation: {orientation}')
             if self.current_speckle == 0 or self.current_speckle ==2:
                 orientation = np.pi/2 - orientation
             elif self.current_speckle == 1 or self.current_speckle == 3:
@@ -192,7 +194,7 @@ class AdcFitter:
             sigma_y = .5
 
             #params common to all four
-            orientation = np.radians(30)
+            orientation = np.radians(28)
             amplitude = self.data.max()
             centroid = self.estimate_centroid()
             mu_x = centroid[0]
