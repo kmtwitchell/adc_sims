@@ -120,10 +120,10 @@ class AdcFitter:
             #orientation = np.radians(28)
 
             orientation = self.estimate_angle()
-            # if self.current_speckle == 0 or self.current_speckle ==2:
-            #     orientation = np.pi/2 - orientation
-            # elif self.current_speckle == 1 or self.current_speckle == 3:
-            #     orientation = -orientation
+            if self.current_speckle == 0 or self.current_speckle ==2:
+                orientation = np.pi/2 - orientation
+            elif self.current_speckle == 1 or self.current_speckle == 3:
+                orientation = -orientation
 
             #params common to all four
             amplitude = self.data.max()
