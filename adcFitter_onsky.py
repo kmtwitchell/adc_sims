@@ -84,7 +84,7 @@ class AdcFitter:
         return angle
 
     def find_speckle(self, image,speckle_number):
-        #this assumes that the units of the image x and y axes are lam/d at 656 nm. will this always be the case?
+        #this assumes that the units of the image x and y axes are lam/d at 656 nm. 
         '''speckles are indexed from the top right going counter clockwise'''
         grating_freq = self.grating_freq
         grating_angle = self.grating_angle
@@ -95,12 +95,6 @@ class AdcFitter:
         rect = make_rotated_aperture(make_rectangular_aperture(size=sizes[speckle_number], center=corners[speckle_number]), np.deg2rad(-grating_angle))(image.grid)
         speckle_img = rect * image
         return speckle_img
-    
-    # def simulate_noisy_dispersion(self,disp_x,disp_y,num_photons,ptv=0): #generating a psf with poisson noise and turbulence
-    #     noisy_psf = self.generator.noisy_turbulent_psf(magnitude_x=disp_x,magnitude_y=disp_y,ptv=ptv,num_photons=num_photons)
-    #     noisy_psf /= noisy_psf.max()
-
-    #     return noisy_psf
 
     def set_psf(self,psf):
         self.psf = psf  

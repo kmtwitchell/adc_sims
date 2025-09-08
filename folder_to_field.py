@@ -4,7 +4,7 @@ from hcipy import *
 import os
 from adcFitter_onsky import AdcFitter
 
-folder_path = '/Users/Katie/Documents/MagAO-X/Data/ADC/lab_7725/2025-07-07_232841_lab_adc_7725_1offset_usat/camsci1'
+folder_path = '/Users/Katie/Documents/MagAO-X/Data/ADC/lab_9225/2025-09-02_223610_lab_adc_sweep_92/camsci1'
 
 # Get all image file paths in the folder
 image_files = [os.path.join(folder_path, file) for file in os.listdir(folder_path) if file.startswith("camsci1") and file.endswith('.fits')]
@@ -45,4 +45,4 @@ for img in images:
 # plt.show()
 
 fieldcube = Field(fields,fields[-1].grid)
-write_field(fieldcube,'/Users/Katie/Documents/MagAO-X/simulations/adc_sims/lab_analysis/fields/unsats/7725_1offset.fits')
+write_field(fieldcube,'/Users/Katie/Documents/MagAO-X/simulations/adc_sims/lab_analysis/fields/unsats/comparison_sweep.fits')
