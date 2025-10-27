@@ -2,7 +2,7 @@ import numpy as np
 from hcipy import *    
 
 class PsfGenerator:
-    def __init__(self, telescope_pupil=None, center_wavelength=1, bandwidth = 0.1, fx = 10, fy = 10, focal_sampling = 3, focal_extent = 16, ccd_grid=None, mask=False, grating_angle=0):
+    def __init__(self, telescope_pupil=None, center_wavelength=1, bandwidth = 0.1, fx = 10, fy = 10, focal_sampling = 3, focal_extent = 16, ccd_grid=None, mask=False, grating_angle=0,polar=False):
         #creating Magellan pupil as default
         if telescope_pupil is None:
             pupil_grid = make_pupil_grid(128)
@@ -152,13 +152,60 @@ class PsfGenerator:
         # phase_aberrated -= np.mean(phase_aberrated[self.telescope_pupil >= 0.5])
                         
         for wlen in np.linspace(self.center_wavelength - self.bandwidth / 2., self.center_wavelength + self.bandwidth / 2., 12):
-            k = 2 * np.pi / wlen #wavemumber
+            k = 2 * np.pi / wlen #wavenumber
             opd_y = magnitude_y * disp(wlen,self.center_wavelength) * self.telescope_pupil.grid.y
             opd_x = magnitude_x * disp(wlen,self.center_wavelength) * self.telescope_pupil.grid.x
             opd = opd_y + opd_x 
             phase = opd * k #optical path difference between dispersed & not dispersed
 
             #wf1 = Wavefront(self.telescope_pupil * np.exp(1j*(phase + phase_aberrated)),wavelength=wlen)
+            wf1 = Wavefront(self.telescope_pupil * np.exp(1j*(phase)),wavelength=wlen)
+            wf1.total_power = 1/12 #normalizing each wavefront so that the total number of photons is 1 in the BB PSF
+            wfabr = abr.forward(wf1)
+            wf2 = self.grating_optic.forward(wfabr)
+            wf3 = TT.forward(wf2)
+            wf4 = self.propagate.forward(wf3)
+            power = wf4.power
+            
+            if self.mask == True:
+                mask_ap = make_circular_aperture(self.center_wavelength*10,[center_x * self.center_wavelength,center_y * self.center_wavelength])
+                masking = mask_ap(power.grid)
+                masking = np.abs(masking - 1)
+                power *= masking
+            
+            bb_psf += power
+
+        #adding in poisson noise
+        bb_psf = large_poisson(num_photons * bb_psf)
+        bb_psf /= bb_psf.max()
+
+        return bb_psf
+    
+    def polar_psf(self,center_x=0,center_y=0,magnitude=0,orientation=0,num_photons=1E6,ptv=0.2,diam=1,exponent=-2.5):
+        '''PSF generator that generates dispersion in terms of magnitude and orientation, like the MagAO-X ADCs do. Orientation should be entered in degrees, and is measured from the positive x-axis.'''
+        def disp(lam,lam0): #linear function of wavelength and the center wavelength
+            dist = (lam - lam0) #distance from center wavelength
+            #return magnitude * dist * 100
+            return dist * 100
+        
+        TT = TipTiltMirror(self.telescope_pupil.grid)
+        TT.actuators[0] = center_x/2 * self.center_wavelength #center shift in the x direction in units of waves
+        TT.actuators[1] = center_y/2 * self.center_wavelength #center shift in the y direction 
+        
+        abr = SurfaceAberration(self.telescope_pupil.grid,ptv=ptv,diameter=diam,exponent=exponent)
+
+        bb_psf = 0
+
+        magnitude_x = magnitude * np.cos(-np.radians(orientation))
+        magnitude_y = magnitude * np.sin(-np.radians(orientation))
+                        
+        for wlen in np.linspace(self.center_wavelength - self.bandwidth / 2., self.center_wavelength + self.bandwidth / 2., 12):
+            k = 2 * np.pi / wlen #wavenumber
+            opd_y = magnitude_y * disp(wlen,self.center_wavelength) * self.telescope_pupil.grid.y
+            opd_x = magnitude_x * disp(wlen,self.center_wavelength) * self.telescope_pupil.grid.x
+            opd = opd_y + opd_x 
+            phase = opd * k #optical path difference between dispersed & not dispersed
+
             wf1 = Wavefront(self.telescope_pupil * np.exp(1j*(phase)),wavelength=wlen)
             wf1.total_power = 1/12 #normalizing each wavefront so that the total number of photons is 1 in the BB PSF
             wfabr = abr.forward(wf1)
