@@ -62,9 +62,10 @@ class adcFitter2:
         return Field(cutout.ravel(), sub_grid)
         
 
-    def slice_speckle_angle(self,img,speckle_number,print_updates=False):
+    def slice_speckle_angle(self,img,speckle_number,positions=False,print_updates=False):
         '''calculate the angle of a single speckle using the gaussian slicing method. image must be an hcipy field.
-        returns the slope of the designated speckle in degrees.'''
+        returns the slope of the designated speckle in degrees.
+        if positions is set to True, the output will be both the speckle center position and its angle.'''
     
         #locate the general area of the speckle
         extent=20
@@ -123,6 +124,16 @@ class adcFitter2:
         leftbound = nonlin_region[nonlin_region < midpoint][-1] if any(nonlin_region < midpoint) else None
         rightbound = nonlin_region[nonlin_region > midpoint][0] if any(nonlin_region > midpoint) else None
 
+        lin_region_center = (leftbound+rightbound)//2 #this is the center WRT the new window. to do this properly you need it in terms of the old window.
+        corresponding_mu = mus[lin_region_center]
+        relative_center = np.array([lin_region_center - self.speckle_window//2,corresponding_mu - self.speckle_window//2])
+
+        if speckle_number % 2 != 0: #columns vs rows depending on which speckle it is
+            centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+        else:
+            relative_center = np.flip(relative_center) 
+            centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+
         #do a linear regression on the mus in the linear region. if there is no clear linear region, print an error if print_updates is enabled.
         if leftbound is not None and rightbound is not None:
             linear_region = mus[leftbound:rightbound]
@@ -133,7 +144,10 @@ class adcFitter2:
             if print_updates ==True:
                 print(f'slope: {m:.2f}\ncorresponding angle: {angle:.2f} (rad) or {np.degrees(angle):.2f}°')
 
-            return np.degrees(angle) #returns the slope of the individual speckle in degrees.
+            if positions==False:
+                return np.degrees(angle) #returns the slope of the individual speckle in degrees.
+            else: 
+                return np.degrees(angle),centroid #returns both the slope and the speckle's center position.
         else: 
             if print_updates == True:
                 print(f'unable to fit speckle {speckle_number}')

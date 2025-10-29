@@ -198,6 +198,8 @@ class PsfGenerator:
 
         magnitude_x = magnitude * np.cos(-np.radians(orientation))
         magnitude_y = magnitude * np.sin(-np.radians(orientation))
+
+        # I realize I could just do that calculation ^^ and then call the previous function, but whatever.
                         
         for wlen in np.linspace(self.center_wavelength - self.bandwidth / 2., self.center_wavelength + self.bandwidth / 2., 12):
             k = 2 * np.pi / wlen #wavenumber
