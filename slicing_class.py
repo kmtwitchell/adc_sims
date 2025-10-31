@@ -124,15 +124,16 @@ class adcFitter2:
         leftbound = nonlin_region[nonlin_region < midpoint][-1] if any(nonlin_region < midpoint) else None
         rightbound = nonlin_region[nonlin_region > midpoint][0] if any(nonlin_region > midpoint) else None
 
-        lin_region_center = (leftbound+rightbound)//2 #this is the center WRT the new window. to do this properly you need it in terms of the old window.
-        corresponding_mu = mus[lin_region_center]
-        relative_center = np.array([lin_region_center - self.speckle_window//2,corresponding_mu - self.speckle_window//2])
+        if leftbound != None and rightbound != None:
+            lin_region_center = (leftbound+rightbound)//2 #this is the center WRT the new window. to do this properly you need it in terms of the old window.
+            corresponding_mu = mus[lin_region_center]
+            relative_center = np.array([lin_region_center - self.speckle_window//2,corresponding_mu - self.speckle_window//2])
 
-        if speckle_number % 2 != 0: #columns vs rows depending on which speckle it is
-            centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
-        else:
-            relative_center = np.flip(relative_center) 
-            centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+            if speckle_number % 2 != 0: #columns vs rows depending on which speckle it is
+                centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+            else:
+                relative_center = np.flip(relative_center) 
+                centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
 
         #do a linear regression on the mus in the linear region. if there is no clear linear region, print an error if print_updates is enabled.
         if leftbound is not None and rightbound is not None:
@@ -141,6 +142,9 @@ class adcFitter2:
 
             m , b = np.polyfit(lin_x,linear_region,deg=1)
             angle = np.arctan(m)
+            if speckle_number % 2 == 0:
+                angle = np.pi /2 - angle
+
             if print_updates ==True:
                 print(f'slope: {m:.2f}\ncorresponding angle: {angle:.2f} (rad) or {np.degrees(angle):.2f}°')
 
