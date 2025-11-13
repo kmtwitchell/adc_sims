@@ -86,9 +86,13 @@ class adcFitter2:
         speckle_img = rect * img
 
         #find the center of intensity of the speckle area and window the ORIGINAL image around that center
-        center_of_intensity = np.array([sum(speckle_img*speckle_img.grid.x)/sum(speckle_img),sum(speckle_img*speckle_img.grid.y)/sum(speckle_img)])
+        #center_of_intensity = np.array([sum(speckle_img*speckle_img.grid.x)/sum(speckle_img),sum(speckle_img*speckle_img.grid.y)/sum(speckle_img)])
+        max_pixel = speckle_img.grid[np.argmax(speckle_img)]
+        #print(f'coord of max pixel: {max_pixel}')
         window_size=self.speckle_window
-        new_img = self.window_field(img,[center_of_intensity[0],center_of_intensity[1]],window_size,window_size)
+        #new_img = self.window_field(img,[center_of_intensity[0],center_of_intensity[1]],window_size,window_size)
+        new_img = self.window_field(img,[max_pixel[0],max_pixel[1]],window_size,window_size)
+        imshow_field(new_img)
         
         shaped = new_img.shaped
         mus = np.zeros(shaped.shape[0])
@@ -111,7 +115,12 @@ class adcFitter2:
             if zscore > self.snr_threshold:
                 s = self.isolate_gaussian(sliced)
                 s /= s.max()
-                m, std, fwhm = self.mu(s)
+                try:
+                    m, std, fwhm = self.mu(s)
+                except:
+                    print(f'fitting error. could not fit speckle {speckle_number}')
+                    return np.nan
+                
                 mus[i] = m
             else: mus[i] = -1
 
@@ -119,22 +128,45 @@ class adcFitter2:
         deriv2 = np.gradient(np.gradient(mus))
         nonlin_region = np.atleast_1d(np.squeeze(np.where(np.abs(deriv2) >= 0.4)))
 
+        if len(nonlin_region)==0:
+            print('edges of speckle not detected. either speckle takes up entire window, or snr threshold needs to be changed')
+
         #start from the middle of the mu vector and move outward to find the bounds of the linear region
         midpoint = int(np.floor(window_size / 2))
-        leftbound = nonlin_region[nonlin_region < midpoint][-1] if any(nonlin_region < midpoint) else None
-        rightbound = nonlin_region[nonlin_region > midpoint][0] if any(nonlin_region > midpoint) else None
+
+        if any(nonlin_region < midpoint):
+            leftbound = nonlin_region[nonlin_region < midpoint][-1]
+        elif deriv2[-1] <= 0.4:
+            leftbound = 0
+            print('speckle falls off left edge')
+        else: leftbound = None
+
+        if any(nonlin_region > midpoint):
+            rightbound = nonlin_region[nonlin_region > midpoint][0]
+        elif deriv2[0] <= 0.4:
+            rightbound = 50
+            print('speckle falls off right edge')
+        else: rightbound = None
+
+        # leftbound = nonlin_region[nonlin_region < midpoint][-1] if any(nonlin_region < midpoint) else None
+        # rightbound = nonlin_region[nonlin_region > midpoint][0] if any(nonlin_region > midpoint) else None
+        print(f'leftbound: {leftbound}')
+        print(f'rightbound: {rightbound}')
 
         if leftbound != None and rightbound != None:
             lin_region_center = (leftbound+rightbound)//2 #this is the center WRT the new window. to do this properly you need it in terms of the old window.
             corresponding_mu = mus[lin_region_center]
             relative_center = np.array([lin_region_center - self.speckle_window//2,corresponding_mu - self.speckle_window//2])
-
+            #print(f'relative center {relative_center}')
             if speckle_number % 2 != 0: #columns vs rows depending on which speckle it is
-                centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+                #centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+                centroid = np.array([max_pixel[0] + relative_center[0]*speckle_img.grid.delta[0],max_pixel[1] + relative_center[1] * speckle_img.grid.delta[1]])
+                #print(centroid)
             else:
                 relative_center = np.flip(relative_center) 
-                centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
-
+                #centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
+                centroid = np.array([max_pixel[0] + relative_center[0]*speckle_img.grid.delta[0],max_pixel[1] + relative_center[1] * speckle_img.grid.delta[1]])
+                #print(centroid)
         #do a linear regression on the mus in the linear region. if there is no clear linear region, print an error if print_updates is enabled.
         if leftbound is not None and rightbound is not None:
             linear_region = mus[leftbound:rightbound]
@@ -207,6 +239,7 @@ class adcFitter2:
         # radial_map = np.interp(r_coordinates, binc, profile)
 
         filtered_subtracted = img #- radial_map
+        filtered_subtracted = Field([x if x>0 else 0 for x in img],filtered_subtracted.grid)
         
         return filtered_subtracted
     
