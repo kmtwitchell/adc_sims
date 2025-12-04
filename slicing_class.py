@@ -3,6 +3,7 @@ from hcipy import *
 from scipy.optimize import minimize
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+from scipy import ndimage
 
 
 class adcFitter2:
@@ -17,6 +18,8 @@ class adcFitter2:
             self.normalized_bandwidth = bandwidth / 656E-9
             self.control_matrix = np.array([1,1])
             self.speckle_window = speckle_window
+            self.hp_sigma = 10
+            self.lp_sigma = 5
 
     def gauss(self,x,mu,sigma2):
         '''standard gaussian function'''
@@ -61,8 +64,10 @@ class adcFitter2:
         sub_grid = make_pupil_grid([width, height], [width * data.grid.delta[0], height * data.grid.delta[1]])
         return Field(cutout.ravel(), sub_grid)
         
+    def hpf(self,data,sigma):
+        return Field((data.shaped - ndimage.gaussian_filter(data.shaped,sigma)).ravel(),data.grid)
 
-    def slice_speckle_angle(self,img,speckle_number,positions=False,print_updates=False):
+    def slice_speckle_angle(self,img,speckle_number,positions=False,print_updates=False,speckle_filter=False):
         '''calculate the angle of a single speckle using the gaussian slicing method. image must be an hcipy field.
         returns the slope of the designated speckle in degrees.
         if positions is set to True, the output will be both the speckle center position and its angle.'''
@@ -92,8 +97,16 @@ class adcFitter2:
         window_size=self.speckle_window
         #new_img = self.window_field(img,[center_of_intensity[0],center_of_intensity[1]],window_size,window_size)
         new_img = self.window_field(img,[max_pixel[0],max_pixel[1]],window_size,window_size)
-        imshow_field(new_img)
-        
+
+        #filter the speckles
+        if speckle_filter:
+            hp = self.hpf(new_img,self.hp_sigma)
+            lp = hp - self.hpf(hp,self.lp_sigma)
+            lp -= np.median(lp)
+            lp[lp < 0 ] = 0
+            new_img = lp
+            new_img = new_img / np.max(new_img)
+
         shaped = new_img.shaped
         mus = np.zeros(shaped.shape[0])
 
@@ -136,22 +149,22 @@ class adcFitter2:
 
         if any(nonlin_region < midpoint):
             leftbound = nonlin_region[nonlin_region < midpoint][-1]
-        elif deriv2[-1] <= 0.4:
+        elif deriv2[0] <= 0.4:
             leftbound = 0
-            print('speckle falls off left edge')
+            #print('speckle falls off left (bottom) edge')
         else: leftbound = None
 
         if any(nonlin_region > midpoint):
             rightbound = nonlin_region[nonlin_region > midpoint][0]
-        elif deriv2[0] <= 0.4:
+        elif deriv2[-1] <= 0.4:
             rightbound = 50
-            print('speckle falls off right edge')
+            #print('speckle falls off right (top) edge')
         else: rightbound = None
 
         # leftbound = nonlin_region[nonlin_region < midpoint][-1] if any(nonlin_region < midpoint) else None
         # rightbound = nonlin_region[nonlin_region > midpoint][0] if any(nonlin_region > midpoint) else None
-        print(f'leftbound: {leftbound}')
-        print(f'rightbound: {rightbound}')
+        # print(f'leftbound: {leftbound}')
+        # print(f'rightbound: {rightbound}')
 
         if leftbound != None and rightbound != None:
             lin_region_center = (leftbound+rightbound)//2 #this is the center WRT the new window. to do this properly you need it in terms of the old window.
@@ -167,6 +180,7 @@ class adcFitter2:
                 #centroid = np.array([center_of_intensity[0] + relative_center[0]*speckle_img.grid.delta[0],center_of_intensity[1] + relative_center[1] * speckle_img.grid.delta[1]])
                 centroid = np.array([max_pixel[0] + relative_center[0]*speckle_img.grid.delta[0],max_pixel[1] + relative_center[1] * speckle_img.grid.delta[1]])
                 #print(centroid)
+
         #do a linear regression on the mus in the linear region. if there is no clear linear region, print an error if print_updates is enabled.
         if leftbound is not None and rightbound is not None:
             linear_region = mus[leftbound:rightbound]
@@ -174,8 +188,8 @@ class adcFitter2:
 
             m , b = np.polyfit(lin_x,linear_region,deg=1)
             angle = np.arctan(m)
-            if speckle_number % 2 == 0:
-                angle = np.pi /2 - angle
+            # if speckle_number % 2 == 0:
+            #     angle = np.pi /2 - angle
 
             if print_updates ==True:
                 print(f'slope: {m:.2f}\ncorresponding angle: {angle:.2f} (rad) or {np.degrees(angle):.2f}°')
@@ -189,14 +203,14 @@ class adcFitter2:
                 print(f'unable to fit speckle {speckle_number}')
             return np.nan
 
-    def all_speckle_angles(self,img):
+    def all_speckle_angles(self,img,speckle_filter=False):
         '''returns a numpy vector containing the four speckle angles found in the image.
         need a way to incorporate the snr threshold??
         '''
         angles = np.zeros(4)
         for i in range(4):
             #print(i)
-            angles[i] = self.slice_speckle_angle(img,i)
+            angles[i] = self.slice_speckle_angle(img,i,speckle_filter=speckle_filter)
         return angles
     
     def crop_image(self, image,extent=400,mask_diam=60): 
@@ -214,8 +228,8 @@ class adcFitter2:
         img = self.window_field(img,[center_of_intensity[0],center_of_intensity[1]],extent,extent)
         img /= img.max()
         
-        bk = np.median(img)
-        img -= bk
+        # bk = np.median(img)
+        # img -= bk
         
         mask2 = make_circular_aperture(mask_diam,np.array([0,0]))(img.grid)
         mask2 = abs(mask2-1)
@@ -250,6 +264,6 @@ class adcFitter2:
         return pairs
 
     def calculate_command(self,speckle_pairs):
-        predicted_disp = self.control_matrix * np.matrix(speckle_pairs).T
+        predicted_disp = self.control_matrix @ speckle_pairs.T
         predicted_disp = np.array(predicted_disp)
         return -predicted_disp
