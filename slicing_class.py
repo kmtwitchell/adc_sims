@@ -187,10 +187,11 @@ class adcFitter2:
             lin_x = np.arange(len(linear_region))
 
             m , b = np.polyfit(lin_x,linear_region,deg=1)
+            angle = np.arctan(m)
 
-            if speckle_number % 2 == 0:
-                angle = np.arctan(1/m)
-            else: angle = np.arctan(m)
+            # if speckle_number % 2 == 0:
+            #     angle = np.arctan(1/m)
+            # else: angle = np.arctan(m)
 
             if print_updates ==True:
                 print(f'slope: {m:.2f}\ncorresponding angle: {angle:.2f} (rad) or {np.degrees(angle):.2f}°')

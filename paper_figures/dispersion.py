@@ -11,11 +11,24 @@ params = {'legend.fontsize': 'x-large',
          'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large',
          'xtick.labelsize':'x-large',
-         'ytick.labelsize':'x-large'}
+         'ytick.labelsize':'x-large',
+         'font.family':'serif'}
 pylab.rcParams.update(params)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname('adc_sims'), 'simulations')))
 from psfGenerator import PsfGenerator
+
+def colorbar(mappable):
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    import matplotlib.pyplot as plt
+    last_axes = plt.gca()
+    ax = mappable.axes
+    fig = ax.figure
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    cbar = fig.colorbar(mappable, cax=cax)
+    plt.sca(last_axes)
+    return cbar
 
 wavelength = 764E-9
 wavelength_normalized = wavelength / 656E-9
@@ -26,7 +39,7 @@ mono_bw = 1E-9
 bb_bw = 120E-9
 
 #making the figure for the paper (redoing the one from the SPIE proceeding)
-color = 'viridis'
+color = 'binary'
 
 PsfGen_mono = PsfGenerator(center_wavelength=wavelength_normalized,bandwidth=mono_bw/wavelength, focal_sampling=6,focal_extent = grating_frequency*1.25, grating_angle=grating_angle, fx=grating_frequency, fy = grating_frequency, mask=False)
 PsfGen_broad = PsfGenerator(center_wavelength=wavelength_normalized,bandwidth=bb_bw/wavelength, focal_sampling=6,focal_extent = grating_frequency*1.25,grating_angle=grating_angle, fx=grating_frequency, fy = grating_frequency, mask=False)
@@ -54,17 +67,19 @@ psf_disp = np.log10(PsfGen_broad.psf(magnitude_x = 0,magnitude_y = 0.1))
 # colorbarpsf = imshow_field(psf_bb,cmap=color,vmin=-5)
 # fig.colorbar(colorbarpsf,ax=axs,orientation='vertical',fraction=0.046,pad=0.04)
 
-# plt.subplot(1,2,1)
-# imshow_field(psf_mono,cmap=color,vmin=-5)
-# plt.title('Monochromatic PSF')
-plt.subplot(1,2,1)
-imshow_field(psf_bb,cmap=color,vmin=-4)
-#plt.colorbar()
+plt.subplot(1,3,1)
+c = imshow_field(psf_mono,cmap=color,vmin=-5)
+plt.title('Monochromatic PSF')
+plt.subplot(1,3,2)
+a = imshow_field(psf_bb,cmap=color,vmin=-4)
 plt.title('Broadband PSF')
-plt.subplot(1,2,2)
-imshow_field(psf_disp,cmap=color,vmin=-4)
-#plt.colorbar()
+plt.subplot(1,3,3)
+b = imshow_field(psf_disp,cmap=color,vmin=-4)
 plt.title('Dispersed Broadband PSF')
+
+colorbar(a)
+colorbar(b)
+colorbar(c)
 
 plt.tight_layout()
 #fig.savefig('/Users/Katie/Documents/MagAO-X/figures/ADC/jatis paper/test.png',dpi=300)
