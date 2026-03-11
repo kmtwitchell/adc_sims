@@ -219,26 +219,31 @@ class adcFitter2:
         '''cuts out a centered PSF with the central core masked'''
         img = image/image.max()
 
-        img_subtracted = img >0.1
+        img_subtracted = img #>0
         center_of_intensity = np.array([sum(img_subtracted*img_subtracted.grid.x)/sum(img_subtracted),sum(img_subtracted*img_subtracted.grid.y)/sum(img_subtracted)])
+        print(f'COI: {center_of_intensity}')
         mask_ap = make_circular_aperture(mask_diam,center_of_intensity)
         mask = mask_ap(img_subtracted.grid)
         mask = abs(mask - 1)
         masked_img = mask * img
 
-        img = masked_img
-        img = self.window_field(img,[center_of_intensity[0],center_of_intensity[1]],extent,extent)
-        img /= img.max()
+        img = img - np.median(masked_img)
+        masked_img = mask * img
+        masked_img = masked_img/masked_img.max()
+        masked_img[masked_img < 0] = 0
+
+        cropped_img = self.window_field(masked_img,[center_of_intensity[0],center_of_intensity[1]],extent,extent)
+        #img /= img.max()
         
         # bk = np.median(img)
         # img -= bk
         
-        mask2 = make_circular_aperture(mask_diam,np.array([0,0]))(img.grid)
-        mask2 = abs(mask2-1)
-        img = mask2 * img
-        img = Field([x if x>0 else 0 for x in img],img.grid)
+        # mask2 = make_circular_aperture(mask_diam,np.array([0,0]))(img.grid)
+        # mask2 = abs(mask2-1)
+        # img = mask2 * img
+        # img = Field([x if x>0 else 0 for x in img],img.grid)
 
-        return img
+        return cropped_img
     
     def filter_image(self,img,low_freq = 0.01,high_freq=1):
 
@@ -308,6 +313,7 @@ class adcFitter2:
         C = -C
     
         (x, y), *_ = np.linalg.lstsq(M, C)
+        #not sure this center-adjustment code works!
         x -= center[0]
         y -= center[1]
 
