@@ -230,8 +230,8 @@ class adcFitter2:
         img = self.window_field(img,[center_of_intensity[0],center_of_intensity[1]],extent,extent)
         img /= img.max()
         
-        # bk = np.median(img)
-        # img -= bk
+        bk = np.median(img)
+        img -= bk
         
         mask2 = make_circular_aperture(mask_diam,np.array([0,0]))(img.grid)
         mask2 = abs(mask2-1)
@@ -269,3 +269,75 @@ class adcFitter2:
         predicted_disp = self.control_matrix @ speckle_pairs.T
         predicted_disp = np.array(predicted_disp)
         return -predicted_disp
+    
+    def speckles_dxdy(self,psf,plotted=False,printed=False):
+        slopes = np.zeros(4)
+        intercepts = np.zeros(4)
+        points = []
+        lines = np.zeros((4,3))
+    
+        for i in range(4):
+            try:
+                angle,point = self.slice_speckle_angle(psf,i,positions=True)
+            except:
+                print(f'fitting not successful for speckle {i}')
+                return np.nan
+            if i == 0 or i ==2: #comment out when you undo the flip! 
+                angle = 90 - angle
+    
+            slope = np.tan(np.radians(angle))
+            slopes[i] = slope
+            points.append(point)
+            intercepts[i] = -slope * point[0] + point[1]
+    
+        for j in range(4):
+            lines[j,0] = slopes[j]
+            lines[j,1] = -1
+            lines[j,2] = points[j][1] - slopes[j]*points[j][0]
+    
+        A = lines[:,0]
+        B = lines[:,1]
+        C = lines[:,2]
+        norm = np.sqrt(A**2 + B**2)
+    
+        A /= norm
+        B /= norm
+        C /= norm
+    
+        M = np.stack((A.T,B.T),axis=1)
+        C = -C
+    
+        (x, y), *_ = np.linalg.lstsq(M, C)
+        if printed:
+            print(f'least-squares solution: ({x},{y})')
+        magnitude_guess = np.sqrt(x**2+y**2) 
+    
+        #added logic for quadrants
+        if x > 0 and y > 0: #i
+            orientation_guess = np.degrees(np.atan(y/x))
+        elif x < 0 and y >0: #ii
+            orientation_guess = 180+np.degrees(np.atan(y/x))
+        elif x < 0 and y < 0: #iii
+            orientation_guess = -np.degrees(np.atan(y/x))
+        else: #iv
+            orientation_guess = -180-np.degrees(np.atan(y/x))
+    
+        if printed:  
+            print(f'Estimated dispersion direction {orientation_guess}°')
+            print(f'Estimated dispersion magnitude {magnitude_guess}')
+    
+        if plotted:
+            imshow_field(psf)
+            a = np.array(psf.grid.x)
+    
+            for i in range(4):
+                plt.plot(a, slopes[i] * a + intercepts[i],'w--',linewidth=0.5)
+    
+            plt.plot(x,y,'o',color='orange',label='dispersed speckle center')
+            plt.plot(0,0,'o',color='red',label='psf center')
+    
+            plt.xlim((-60,60))
+            plt.ylim((-60,60))
+            plt.legend(loc='upper right')
+            
+        return x,y

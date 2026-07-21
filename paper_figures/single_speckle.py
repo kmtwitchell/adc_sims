@@ -17,9 +17,9 @@ import matplotlib.pylab as pylab
 #          'font.family':'sans-serif'}
 # pylab.rcParams.update(params)
 
-fieldcube = read_field('/Users/Katie/Documents/Fall 2023/MagAO-X/ADC Sim code/updated onsky/all_lab_fields_i.fits')
-img = fieldcube[0]
-imshow_field(img)
+# fieldcube = read_field('/Users/Katie/Documents/Fall 2023/MagAO-X/ADC Sim code/updated onsky/all_lab_fields_i.fits')
+# img = fieldcube[0]
+# imshow_field(img)
 
 wavelength = 764E-9
 bw = 120E-9

@@ -53,7 +53,7 @@ class PsfGenerator:
 
         def disp(lam,lam0): #linear function of wavelength and the center wavelength
             dist = (lam - lam0) #distance from center wavelength
-            return dist * 100
+            return -dist * 100
         
         TT = TipTiltMirror(self.telescope_pupil.grid)
         TT.actuators[0] = center_x/2 * self.center_wavelength #center shift in the x direction in units of waves
@@ -94,7 +94,7 @@ class PsfGenerator:
 
         def disp(lam,lam0): #linear function of wavelength and the center wavelength
             dist = (lam - lam0) #distance from center wavelength
-            return dist * 100
+            return -dist * 100
         
         TT = TipTiltMirror(self.telescope_pupil.grid)
         TT.actuators[0] = center_x/2 * self.center_wavelength #center shift in the x direction in units of waves
@@ -137,7 +137,7 @@ class PsfGenerator:
         def disp(lam,lam0): #linear function of wavelength and the center wavelength
             dist = (lam - lam0) #distance from center wavelength
             #return magnitude * dist * 100
-            return dist * 100
+            return -dist * 100
         
         TT = TipTiltMirror(self.telescope_pupil.grid)
         TT.actuators[0] = center_x/2 * self.center_wavelength #center shift in the x direction in units of waves
@@ -186,7 +186,7 @@ class PsfGenerator:
         def disp(lam,lam0): #linear function of wavelength and the center wavelength
             dist = (lam - lam0) #distance from center wavelength
             #return magnitude * dist * 100
-            return dist * 100
+            return -dist * 100
         
         TT = TipTiltMirror(self.telescope_pupil.grid)
         TT.actuators[0] = center_x/2 * self.center_wavelength #center shift in the x direction in units of waves
