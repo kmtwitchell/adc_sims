@@ -5,6 +5,49 @@ import matplotlib.pyplot as plt
 from hcipy import *
 from scipy import ndimage
 
+def window_field(data,center,width,height):
+    '''crop a smaller field out of a big field. data must be an hcipy field.'''
+    indx = data.grid.closest_to(center)
+    y_ind, x_ind = np.unravel_index(indx, data.shaped.shape)
+    cutout = data.shaped[(y_ind-height//2):(y_ind + height//2), (x_ind-width//2):(x_ind+width//2)]
+    sub_grid = make_pupil_grid([width, height], [width * data.grid.delta[0], height * data.grid.delta[1]])
+    return Field(cutout.ravel(), sub_grid)
+
+def crop_image(image,extent=100,mask_diam=0.5E-6): 
+    '''cuts out a centered PSF with the central core masked'''
+    img_normalized = image/np.max(image)
+
+    img_subtracted = img_normalized >0.1
+    center_of_intensity = np.array([sum(img_subtracted*img_subtracted.grid.x)/sum(img_subtracted),sum(img_subtracted*img_subtracted.grid.y)/sum(img_subtracted)])
+    mask_ap = make_circular_aperture(mask_diam,center_of_intensity)
+    mask = mask_ap(img_subtracted.grid)
+    mask = abs(mask - 1)
+    image = mask * image
+
+    image = window_field(image,[center_of_intensity[0],center_of_intensity[1]],extent,extent)
+    image = Field([x if x>0 else 0 for x in image],image.grid)
+
+    return image
+
+def speckle_cutout(img,speckle_number,angle,f=10,window_size=30):
+    extent=1E-6
+    separation = f #note that this version is slightly different than the _testing notebook version
+    #because it assumes the grid is in units of lam/D instead of pixel angular size!
+
+    speckle_coords = np.array([
+        [0,           separation],
+        [separation,  0],
+        [0,          -separation],
+        [-separation, 0]
+    ])
+    speckle_center = speckle_coords[speckle_number]
+    rect = make_rotated_aperture(make_rectangular_aperture(size=(extent,extent), center=speckle_center), np.deg2rad(-angle))(img.grid)
+    speckle_img = rect * img.copy()
+
+    max_pixel = speckle_img.grid[np.argmax(speckle_img)]
+    new_img = window_field(img,[max_pixel[0],max_pixel[1]],window_size,window_size)
+    return np.array(new_img.shaped)
+
 def moment_angle(
     crop: np.ndarray,
     fwhm_px: float = 6.0,

@@ -68,7 +68,9 @@ def psf(wavelength,bandwidth,dispersion_x=0, dispersion_y=0,freq=10,angle=0,mask
 
     return bb_psf
 
-def poisson_psf(wavelength,bandwidth,num_photons,dispersion_x=0, dispersion_y=0,freq=10,angle=0,mask=False):
+def poisson_psf(wavelength,bandwidth,num_photons,dispersion_x=0, dispersion_y=0,freq=10,angle=0,mask=False,background=.01):
+    #background parameter is a proportion of the maximum signal, added to everything that is 2 sigma away from the maximum 
+
     telescope_diameter = 6.5 # meter
     oversizing_factor = 1 #how much extra space next to the pupil (1 = no padding)
 
