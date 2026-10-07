@@ -235,8 +235,8 @@ class adcFitter2:
         cropped_img = self.window_field(masked_img,[center_of_intensity[0],center_of_intensity[1]],extent,extent)
         #img /= img.max()
         
-        # bk = np.median(img)
-        # img -= bk
+        bk = np.median(img)
+        img -= bk
         
         # mask2 = make_circular_aperture(mask_diam,np.array([0,0]))(img.grid)
         # mask2 = abs(mask2-1)
@@ -275,7 +275,11 @@ class adcFitter2:
         predicted_disp = np.array(predicted_disp)
         return -predicted_disp
     
+<<<<<<< HEAD
     def speckles_dxdy(self,psf,center=np.array([0,0]),plotted=False,printed=False,filtered=False):
+=======
+    def speckles_dxdy(self,psf,plotted=False,printed=False):
+>>>>>>> old
         slopes = np.zeros(4)
         intercepts = np.zeros(4)
         points = []
@@ -283,11 +287,19 @@ class adcFitter2:
     
         for i in range(4):
             try:
+<<<<<<< HEAD
                 angle,point = self.slice_speckle_angle(psf,i,positions=True,speckle_filter=filtered)
             except:
                 print(f'fitting not successful for speckle {i}')
                 return np.nan
             if i == 0 or i ==2:
+=======
+                angle,point = self.slice_speckle_angle(psf,i,positions=True)
+            except:
+                print(f'fitting not successful for speckle {i}')
+                return np.nan
+            if i == 0 or i ==2: #comment out when you undo the flip! 
+>>>>>>> old
                 angle = 90 - angle
     
             slope = np.tan(np.radians(angle))
@@ -313,10 +325,13 @@ class adcFitter2:
         C = -C
     
         (x, y), *_ = np.linalg.lstsq(M, C)
+<<<<<<< HEAD
         #not sure this center-adjustment code works!
         x -= center[0]
         y -= center[1]
 
+=======
+>>>>>>> old
         if printed:
             print(f'least-squares solution: ({x},{y})')
         magnitude_guess = np.sqrt(x**2+y**2) 

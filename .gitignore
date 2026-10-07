@@ -8,3 +8,5 @@ all_lab6225.fits
 lab_analysis/fields
 lab_analysis/pointings
 onsky_25b/fields/tau_ceti_adc_tests_offset_i.fits
+r_adc1_test.fits
+r_adc1_test64m64.fits
