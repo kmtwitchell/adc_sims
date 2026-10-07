@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from hcipy import *
 import os
 
-folder_path = '/Users/Katie/Documents/MagAO-X/Data/ADC/2026A/alycia_sample'
+folder_path = '/Users/Katie/Documents/MagAO-X/Data/ADC/2026A/parker_sample/camsci1'
 
 # Get all image file paths in the folder
 image_files = [os.path.join(folder_path, file) for file in os.listdir(folder_path) if file.startswith("camsci1") and file.endswith('.fits')]
@@ -30,4 +30,4 @@ for img in images[0:200]:
     fields.append(im)
 
 fieldcube = Field(fields,fields[-1].grid)
-write_field(fieldcube,'/Users/Katie/Documents/MagAO-X/Data/ADC/2026A/alycia_sample/alycia_sample_cube.fits')
+write_field(fieldcube,'/Users/Katie/Documents/MagAO-X/Data/ADC/2026A/parker_sample/camsci1/parker_sample_cube.fits')
